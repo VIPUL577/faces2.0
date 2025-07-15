@@ -76,9 +76,8 @@ class FaceDetectionDataset(torch.utils.data.Dataset):
             positive_anchors = anchors[positive_mask]
             assigned_gt = gt_boxes[max_iou_indices[positive_mask]]
             bbox_targets[positive_mask] = self.encode_bbox_targets(assigned_gt, positive_anchors)
-
         return {
-            'cls_targets': cls_targets,
+            'cls_targets': cls_targets.reshape((cls_targets.shape[0],1)),
             'bbox_targets': bbox_targets,
             'bbox_weights': bbox_weights
         }

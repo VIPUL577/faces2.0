@@ -22,9 +22,16 @@ class Lossfunction(nn.Module):
         bbox_loss = 0 
         for level,key in enumerate(predicted.keys()):
             predicta = predicted[key]
-            targeta = targets[3-level]
+            targeta = targets[level]
+            # print(f"Level {level}, Key: {key}")
+            # print(f"Pred cls shape: {predicta['cls'].shape}")
+            # print(f"Target cls shape: {targeta['cls_targets'].shape}")
+            # print(f"Pred bbox shape: {predicta['bbox'].shape}")
+            # print(f"Target bbox shape: {targeta['bbox_targets'].shape}")
+            # print(f"Bbox weights shape: {targeta['bbox_weights'].shape}")
             cls_loss += self.classloss(predicta["cls"], targeta["cls_targets"])
-            bbox_loss += self.reg_loss(predicta["bbox"],targeta["bbox_targets"]) if targeta["bbox_weights"].sum() > 0 else 0 
+            if targeta['bbox_weights'].sum() > 0:
+                bbox_loss += self.reg_loss(predicta["bbox"],targeta["bbox_targets"],targeta['bbox_weights'])
             
         return cls_loss + bbox_loss      
             
