@@ -4,7 +4,8 @@ import numpy as np
 from mobilenetv2 import MobileNetv2
 from FPN import Features, FPNetwork , classificationhead , bboxhead
 
-device = torch.device("mps")
+# device = torch.device("mps")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 model = torch.hub.load('pytorch/vision:v0.10.0', 'mobilenet_v2', pretrained=True)
 model = model.features.to(device)
@@ -23,3 +24,15 @@ for key in list(newfeatures.keys()):
     temp["bbox"] = bboxregression(newfeatures[key])
     temp["cls"] = classifier(newfeatures[key])
     output[key] = temp
+
+
+# def forward(p):
+#     features = extractor.extract(p)
+#     newfeatures = topdown(features)
+#     output = {}
+#     for key in list(newfeatures.keys()):
+#         temp = {}
+#         temp["bbox"] = bboxregression(newfeatures[key])
+#         temp["cls"] = classifier(newfeatures[key])
+#         output[key] = temp
+#     return output

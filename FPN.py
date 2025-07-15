@@ -3,7 +3,9 @@ import torch.nn as nn
 import numpy as np
 from mobilenetv2 import ConvBN
 
-device = torch.device("mps")
+# device = torch.device("mps")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 
 class Features(nn.Module):
     def __init__(self, model, layers:list):

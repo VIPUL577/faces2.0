@@ -5,7 +5,9 @@ from torchvision.transforms import transforms
 from datasets import load_dataset
 
 
-device = torch.device("mps")
+# device = torch.device("mps")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 
 class FaceDetectionDataset(torch.utils.data.Dataset):
     def __init__(self, widerface_dataset, anchor_generator):

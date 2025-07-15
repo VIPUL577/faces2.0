@@ -2,7 +2,8 @@ import torch
 import torch.nn as nn
 import numpy as np
 
-device = torch.device("mps")
+# device = torch.device("mps")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 class ConvBN(nn.Module):
