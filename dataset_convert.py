@@ -26,14 +26,14 @@ class FaceDetectionDataset(torch.utils.data.Dataset):
         data['faces']['bbox'][:,3]=(data['faces']["bbox"][:,3]*(640/data['image'].numpy().shape[1]))
         
         gt_boxes = data['faces']['bbox'].to(device)  # Shape: [num_faces, 4]
-        image = self.transforms(data['image'].to(torch.float))
+        image = self.transforms(data['image'].to(torch.float)/255)
         all_anchors = self.anchor_generator.generate_anchors()#feature_map_sizes)
         targets = []
         for level, anchors in enumerate(all_anchors):
             level_targets = self.assign_targets(gt_boxes, anchors)
             targets.append(level_targets)
             
-        return image, targets
+        return image.to(device), targets
     
     def assign_targets(self, gt_boxes, anchors, pos_threshold=0.5, neg_threshold=0.2):
         """Assign ground truth boxes to anchors"""
