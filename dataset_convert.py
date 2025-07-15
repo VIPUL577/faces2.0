@@ -1,6 +1,9 @@
 import torch
 import random
 import math
+from torchvision.transforms import transforms
+from datasets import load_dataset
+
 
 device = torch.device("mps")
 
@@ -8,14 +11,22 @@ class FaceDetectionDataset(torch.utils.data.Dataset):
     def __init__(self, widerface_dataset, anchor_generator):
         self.dataset = widerface_dataset
         self.anchor_generator = anchor_generator
-        
+        self.transforms = transforms.Compose([
+            transforms.Resize((640, 640)),
+            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
+        ])
     def __len__(self):
         return len(self.dataset)
     
     def __getitem__(self, idx):
-        image, target = self.dataset[idx]
-        gt_boxes = target['bbox'].to(device)  # Shape: [num_faces, 4]
-
+        data= self.dataset[idx]
+        data['faces']['bbox'][:,0]=(data['faces']["bbox"][:,0]*(640/1024))
+        data['faces']['bbox'][:,1]=(data['faces']["bbox"][:,1]*(640/data['image'].numpy().shape[1]))
+        data['faces']['bbox'][:,2]=(data['faces']["bbox"][:,2]*(640/1024))
+        data['faces']['bbox'][:,3]=(data['faces']["bbox"][:,3]*(640/data['image'].numpy().shape[1]))
+        
+        gt_boxes = data['faces']['bbox'].to(device)  # Shape: [num_faces, 4]
+        image = self.transforms(data['image'].to(torch.float))
         all_anchors = self.anchor_generator.generate_anchors()#feature_map_sizes)
         targets = []
         for level, anchors in enumerate(all_anchors):
@@ -163,4 +174,3 @@ class AnchorGenerator:
                         anchors.append([x1, y1,anchor_w ,anchor_h ])
         
         return torch.tensor(anchors, dtype=torch.float32,device=device)
-    
