@@ -1,6 +1,7 @@
 import torch
 import random
 import math
+import torch.nn as nn
 from torchvision.transforms import transforms
 from datasets import load_dataset
 
@@ -13,29 +14,37 @@ class FaceDetectionDataset(torch.utils.data.Dataset):
     def __init__(self, widerface_dataset, anchor_generator):
         self.dataset = widerface_dataset
         self.anchor_generator = anchor_generator
-        self.transforms = transforms.Compose([
+        self.all_anchors = self.anchor_generator.generate_anchors()
+
+        self.transform = nn.Sequential(
             transforms.Resize((640, 640)),
             transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
-        ])
+            ).to(device)
     def __len__(self):
         return len(self.dataset)
     
     def __getitem__(self, idx):
-        data= self.dataset[idx]
-        data['faces']['bbox'][:,0]=(data['faces']["bbox"][:,0]*(640/1024))
-        data['faces']['bbox'][:,1]=(data['faces']["bbox"][:,1]*(640/data['image'].numpy().shape[1]))
-        data['faces']['bbox'][:,2]=(data['faces']["bbox"][:,2]*(640/1024))
-        data['faces']['bbox'][:,3]=(data['faces']["bbox"][:,3]*(640/data['image'].numpy().shape[1]))
-        
-        gt_boxes = data['faces']['bbox'].to(device)  # Shape: [num_faces, 4]
-        image = self.transforms(data['image'].to(torch.float)/255)
-        all_anchors = self.anchor_generator.generate_anchors()#feature_map_sizes)
-        targets = []
-        for level, anchors in enumerate(all_anchors):
-            level_targets = self.assign_targets(gt_boxes, anchors)
-            targets.append(level_targets)
-            
-        return image.to(device), targets
+        try:
+            data= self.dataset[idx]
+            if data['faces']['bbox']!=[] :
+                data['faces']['bbox'][:,0]=data['faces']['bbox'][:,0]*(640/1024)
+                data['faces']['bbox'][:,1]=data['faces']['bbox'][:,1]*(640/data['image'].shape[1])
+                data['faces']['bbox'][:,2]=data['faces']['bbox'][:,2]*(640/1024)
+                data['faces']['bbox'][:,3]=data['faces']['bbox'][:,3]*(640/data['image'].shape[1])
+                gt_boxes = data['faces']['bbox'].to(device)  # Shape: [num_faces, 4]
+            else:
+                gt_boxes = []
+            image = self.transform(data['image'].to(torch.float)/255)
+            #feature_map_sizes)
+            targets = []
+            for level, anchors in enumerate(self.all_anchors):
+                level_targets = self.assign_targets(gt_boxes, anchors)
+                targets.append(level_targets)
+                
+            return image.to(device), targets
+        except Exception as e:
+            print(f"Batch no. {idx}: {e}")
+            return self.__getitem__(idx + 1)
     
     def assign_targets(self, gt_boxes, anchors, pos_threshold=0.5, neg_threshold=0.2):
         """Assign ground truth boxes to anchors"""
@@ -175,3 +184,6 @@ class AnchorGenerator:
                         anchors.append([x1, y1,anchor_w ,anchor_h ])
         
         return torch.tensor(anchors, dtype=torch.float32,device=device)
+    
+
+
