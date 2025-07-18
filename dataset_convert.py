@@ -7,7 +7,9 @@ from datasets import load_dataset
 
 
 # device = torch.device("mps")
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cpu" )
+
 
 
 class FaceDetectionDataset(torch.utils.data.Dataset):
@@ -24,8 +26,10 @@ class FaceDetectionDataset(torch.utils.data.Dataset):
         return len(self.dataset)
     
     def __getitem__(self, idx):
+        
         try:
             data= self.dataset[idx]
+            image = self.transform(data['image'].to(torch.float)/255)
             if data['faces']['bbox']!=[] :
                 data['faces']['bbox'][:,0]=data['faces']['bbox'][:,0]*(640/1024)
                 data['faces']['bbox'][:,1]=data['faces']['bbox'][:,1]*(640/data['image'].shape[1])
@@ -33,8 +37,8 @@ class FaceDetectionDataset(torch.utils.data.Dataset):
                 data['faces']['bbox'][:,3]=data['faces']['bbox'][:,3]*(640/data['image'].shape[1])
                 gt_boxes = data['faces']['bbox'].to(device)  # Shape: [num_faces, 4]
             else:
+                
                 gt_boxes = []
-            image = self.transform(data['image'].to(torch.float)/255)
             #feature_map_sizes)
             targets = []
             for level, anchors in enumerate(self.all_anchors):
@@ -53,7 +57,7 @@ class FaceDetectionDataset(torch.utils.data.Dataset):
         if len(gt_boxes) == 0:
             # No faces in image
             return {
-                'cls_targets': torch.zeros(num_anchors, dtype=torch.long).to(device),
+                'cls_targets': torch.zeros((num_anchors,1), dtype=torch.long).to(device),
                 'bbox_targets': torch.zeros(num_anchors, 4).to(device),
                 'bbox_weights': torch.zeros(num_anchors).to(device)
             }
