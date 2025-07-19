@@ -1,18 +1,21 @@
 import torch
 import torch.nn as nn
 import numpy as np
+import torch.nn.init as init
 
 # device = torch.device("mps")
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 class ConvBN(nn.Module):
-    def __init__(self,in_channels,out_channels, kernel_size, stride, bais=False,padding=0):
+    def __init__(self,in_channels,out_channels, kernel_size, stride, bais=True,padding=0):
         super().__init__()
         layer = []
         layer.append(nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, bias=bais,stride=stride,padding=padding))
         layer.append(nn.BatchNorm2d(num_features=out_channels))
         layer.append(nn.ReLU6(inplace=True))
+        init.xavier_uniform_(layer[0].weight)          # leading “_” means *in-place*
+        init.zeros_(layer[0].bias)
         self.model = nn.Sequential(*layer)#.to(device)
     def forward(self,x):
         return self.model(x)
