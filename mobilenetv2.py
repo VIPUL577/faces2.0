@@ -8,7 +8,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 class ConvBN(nn.Module):
-    def __init__(self,in_channels,out_channels, kernel_size, stride, bais=True,padding=0,pi = 0.01,activation = True):
+    def __init__(self,in_channels,out_channels, kernel_size, stride, bais=True,padding=0,pi = 0.5,activation = True):
         super().__init__()
         layer = []
         layer.append(nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, bias=bais,stride=stride,padding=padding))

@@ -75,7 +75,7 @@ class classificationhead(nn.Module):
             ConvBN(in_channels=channels,out_channels=channels, kernel_size= 3,stride=1,padding=1).to(device),
             ConvBN(in_channels=channels,out_channels=channels, kernel_size= 3,stride=1,padding=1).to(device),
             ConvBN(in_channels=channels,out_channels=channels, kernel_size= 3,stride=1,padding=1).to(device),
-            ConvBN(in_channels= self.channels, out_channels= self.anchors*self.num_of_classes, kernel_size= 3,stride=1,padding=1)
+            ConvBN(in_channels= self.channels, out_channels= self.anchors*self.num_of_classes, kernel_size= 3,stride=1,padding=1,pi=0.01,activation=False)
         ).to(device)
         
     def forward(self,x):
@@ -97,7 +97,7 @@ class bboxhead(nn.Module):
             ConvBN(in_channels=channels,out_channels=channels, kernel_size= 3,stride=1,padding=1).to(device),
             ConvBN(in_channels=channels,out_channels=channels, kernel_size= 3,stride=1,padding=1).to(device),
             ConvBN(in_channels=channels,out_channels=channels, kernel_size= 3,stride=1,padding=1).to(device),
-            ConvBN(in_channels= self.channels, out_channels= self.anchors*4, kernel_size= 3,stride=1,padding=1)
+            ConvBN(in_channels= self.channels, out_channels= self.anchors*4, kernel_size= 3,stride=1,padding=1, activation= False)
         ).to(device)
         
     def forward(self,x):
