@@ -41,9 +41,11 @@ class FPNetwork(nn.Module):
         self.upsample = nn.Upsample(scale_factor=2, mode='nearest').to(device)
         self.outchannels = out_channels
         self.convs = nn.ModuleDict()
+        self.final_conv = nn.ModuleDict()
         for level,key in enumerate(list(in_channels.keys())):
-            self.convs.add_module(key,nn.Conv2d(in_channels=in_channels[key],out_channels=self.outchannels, kernel_size= 1).to(device))
-        
+            self.convs.add_module(key,ConvBN(in_channels=in_channels[key],out_channels=self.outchannels, kernel_size= 1,stride=1,activation=False).to(device))
+            self.final_conv.add_module(key,ConvBN(in_channels=out_channels,out_channels=out_channels, kernel_size= 3,stride=1,padding=1,activation=False).to(device))
+            
     def forward(self, features:dict):
         self.keys = list(features.keys())
         self.features = features
@@ -52,10 +54,10 @@ class FPNetwork(nn.Module):
         for i in range (len(self.keys)-1,-1,-1):
             feature = self.features[self.keys[i]]
             if i == len(self.keys)-1:
-                self.output[self.keys[i]] = self.convs[self.keys[i]](feature)
+                self.output[self.keys[i]] = self.final_conv[self.keys[i]](self.convs[self.keys[i]](feature))
                 continue
             x = self.convs[self.keys[i]](feature)
-            self.output[self.keys[i]] = x + self.upsample(self.output[self.keys[i+1]])
+            self.output[self.keys[i]] = self.final_conv[self.keys[i]](x + self.upsample(self.output[self.keys[i+1]]))
             
         return self.output
         
