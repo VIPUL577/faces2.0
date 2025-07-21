@@ -68,7 +68,7 @@ class classificationhead(nn.Module):
         self.channels = channels
         self.anchors = num_anchors
         self.num_of_classes = num_of_classes
-        self.sigmoid = nn.Sigmoid().to(device)
+        # self.sigmoid = nn.Sigmoid().to(device)
 
         self.model = nn.Sequential(
             ConvBN(in_channels=channels,out_channels=channels, kernel_size= 3,stride=1,padding=1).to(device),
@@ -82,8 +82,7 @@ class classificationhead(nn.Module):
         x = self.model(x)
         _x = x.view(x.shape[0],self.anchors,self.num_of_classes, x.shape[2], x.shape[3])
         f_x = _x.permute(0, 1, 3, 4, 2).contiguous()
-        x = self.sigmoid(f_x.reshape((x.shape[0],f_x.shape[1]*f_x.shape[2]*f_x.shape[3],self.num_of_classes))) 
-        
+        x = (f_x.reshape((x.shape[0],f_x.shape[1]*f_x.shape[2]*f_x.shape[3],self.num_of_classes))) 
         return x
     
 class bboxhead(nn.Module):
@@ -91,13 +90,13 @@ class bboxhead(nn.Module):
         super().__init__()
         self.channels = channels
         self.anchors = num_anchors
-    
+        self.linear = nn.Conv2d(in_channels=self.channels,out_channels= self.anchors*4, kernel_size= 3,stride=1,padding=1)
         self.model = nn.Sequential(
             ConvBN(in_channels=channels,out_channels=channels, kernel_size= 3,stride=1,padding=1).to(device),
             ConvBN(in_channels=channels,out_channels=channels, kernel_size= 3,stride=1,padding=1).to(device),
             ConvBN(in_channels=channels,out_channels=channels, kernel_size= 3,stride=1,padding=1).to(device),
             ConvBN(in_channels=channels,out_channels=channels, kernel_size= 3,stride=1,padding=1).to(device),
-            ConvBN(in_channels= self.channels, out_channels= self.anchors*4, kernel_size= 3,stride=1,padding=1, activation= False)
+            self.linear
         ).to(device)
         
     def forward(self,x):

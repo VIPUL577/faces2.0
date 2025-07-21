@@ -11,15 +11,18 @@ class Lossfunction(nn.Module):
         self.alpha = alpha
         self.gamma = gamma
         self.lambd = lambd
-        self.BCELoss = nn.BCELoss().to(device)
+        self.BCEloss = nn.BCEWithLogitsLoss(reduction='none').to(device)
         self.sigmoid = nn.Sigmoid().to(device)
+
     def classloss(self, p, cls_targets):
-        p = p.clamp(min=1e-8, max = 1-(1e-8))
+        # p = p.clamp(min=1e-8, max = 1-(1e-8))
+        pa = self.sigmoid(p)
         alpha = (self.alpha* cls_targets) + ((1-self.alpha)*(1- cls_targets))
-        pt = (((1-p)**self.gamma) * cls_targets) + ((p**self.gamma) * (1-cls_targets))
-        p = self.BCELoss(p,cls_targets.to(torch.float))
+        pt = ((1-pa) * (1-cls_targets)) + (pa * cls_targets)
+    
+        p = self.BCEloss(p,cls_targets.to(torch.float))
         
-        loss = alpha*pt*p
+        loss = alpha*((1-pt)**self.gamma)*p
         pos = (cls_targets.sum()).clamp(1.0)
         # print(f"cls--raw:{(pos_loss+neg_loss).sum()}\n p:{pos}")
         return loss.sum()/pos
@@ -45,7 +48,7 @@ class Lossfunction(nn.Module):
                 # k+=targeta['bbox_weights'].sum()
             # print(f"k:{k}")
         # print((bbox_loss/cls_loss)*1.0)
-        print(f'''box loss:{bbox_loss}\ncls loss:{cls_loss}''')
+        # print(f'''box loss:{bbox_loss}\ncls loss:{cls_loss}''')
         return cls_loss + (self.lambd*bbox_loss)
             
             
