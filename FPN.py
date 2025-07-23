@@ -6,7 +6,6 @@ from mobilenetv2 import ConvBN
 # device = torch.device("mps")
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-
 class Features(nn.Module):
     def __init__(self, model, layers:list):
         super().__init__()
@@ -43,8 +42,8 @@ class FPNetwork(nn.Module):
         self.convs = nn.ModuleDict()
         self.final_conv = nn.ModuleDict()
         for level,key in enumerate(list(in_channels.keys())):
-            self.convs.add_module(key,ConvBN(in_channels=in_channels[key],out_channels=self.outchannels, kernel_size= 1,stride=1,activation=False).to(device))
-            self.final_conv.add_module(key,ConvBN(in_channels=out_channels,out_channels=out_channels, kernel_size= 3,stride=1,padding=1,activation=False).to(device))
+            self.convs.add_module(str(key).replace('.','_'),ConvBN(in_channels=in_channels[key],out_channels=self.outchannels, kernel_size= 1,stride=1,activation=False).to(device))
+            self.final_conv.add_module(str(key).replace('.','_'),ConvBN(in_channels=out_channels,out_channels=out_channels, kernel_size= 3,stride=1,padding=1,activation=False).to(device))
             
     def forward(self, features:dict):
         self.keys = list(features.keys())
@@ -54,10 +53,11 @@ class FPNetwork(nn.Module):
         for i in range (len(self.keys)-1,-1,-1):
             feature = self.features[self.keys[i]]
             if i == len(self.keys)-1:
-                self.output[self.keys[i]] = self.final_conv[self.keys[i]](self.convs[self.keys[i]](feature))
+                # print(self.keys[i].replace('.','_'))
+                self.output[self.keys[i]] = self.final_conv[self.keys[i].replace('.','_')](self.convs[self.keys[i].replace('.','_')](feature))
                 continue
-            x = self.convs[self.keys[i]](feature)
-            self.output[self.keys[i]] = self.final_conv[self.keys[i]](x + self.upsample(self.output[self.keys[i+1]]))
+            x = self.convs[self.keys[i].replace('.','_')](feature)
+            self.output[self.keys[i]] = self.final_conv[self.keys[i].replace('.','_')](x + self.upsample(self.output[self.keys[i+1]]))
             
         return self.output
         
@@ -90,7 +90,7 @@ class bboxhead(nn.Module):
         super().__init__()
         self.channels = channels
         self.anchors = num_anchors
-        self.linear = nn.Conv2d(in_channels=self.channels,out_channels= self.anchors*4, kernel_size= 3,stride=1,padding=1)
+        self.linear = nn.Conv2d(in_channels=self.channels,out_channels= self.anchors*4, kernel_size= 3,stride=1,padding=1 )
         self.model = nn.Sequential(
             ConvBN(in_channels=channels,out_channels=channels, kernel_size= 3,stride=1,padding=1).to(device),
             ConvBN(in_channels=channels,out_channels=channels, kernel_size= 3,stride=1,padding=1).to(device),

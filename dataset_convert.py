@@ -29,7 +29,7 @@ class FaceDetectionDataset(torch.utils.data.Dataset):
         
         try:
             data= self.dataset[idx]
-            image = self.transform(data['image'].to(torch.float)/255)
+            image = self.transform((data['image']/255.0).to(torch.float))
             if data['faces']['bbox']!=[] :
                 data['faces']['bbox'][:,0]=data['faces']['bbox'][:,0]*(640/1024)
                 data['faces']['bbox'][:,1]=data['faces']['bbox'][:,1]*(640/data['image'].shape[1])
@@ -50,7 +50,7 @@ class FaceDetectionDataset(torch.utils.data.Dataset):
             print(f"Batch no. {idx}: {e}")
             return self.__getitem__(idx + 1)
     
-    def assign_targets(self, gt_boxes, anchors, pos_threshold=0.5, neg_threshold=0.2):
+    def assign_targets(self, gt_boxes, anchors, pos_threshold=0.5, neg_threshold=0.4):
         """Assign ground truth boxes to anchors"""
         num_anchors = len(anchors)
         
@@ -102,6 +102,8 @@ class FaceDetectionDataset(torch.utils.data.Dataset):
         
         num_anchors = anchors.size(0)
         num_gt = gt_boxes.size(0)
+        # print(num_anchors.size)
+        # print(num_gt)
         
         # Expand dimensions for broadcasting
         anchors = anchors.unsqueeze(1).expand(num_anchors, num_gt, 4)
