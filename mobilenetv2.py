@@ -14,7 +14,7 @@ class ConvBN(nn.Module):
         layer.append(nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, bias=bais,stride=stride,padding=padding))
         layer.append(nn.BatchNorm2d(num_features=out_channels))
         if activation:
-            layer.append(nn.ReLU6(inplace=True))
+            layer.append(nn.ReLU(inplace=True))
         init.xavier_uniform_(layer[0].weight) 
         pi= torch.tensor(pi)
         init.constant_(layer[0].bias, -torch.log((1-pi)/pi))

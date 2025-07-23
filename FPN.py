@@ -82,8 +82,8 @@ class classificationhead(nn.Module):
         x = self.model(x)
         _x = x.view(x.shape[0],self.anchors,self.num_of_classes, x.shape[2], x.shape[3])
         f_x = _x.permute(0, 1, 3, 4, 2).contiguous()
-        x = (f_x.reshape((x.shape[0],f_x.shape[1]*f_x.shape[2]*f_x.shape[3],self.num_of_classes))) 
-        return x
+        xh = f_x.view(x.shape[0], -1 , self.num_of_classes)
+        return xh
     
 class bboxhead(nn.Module):
     def __init__(self, channels, num_anchors):
@@ -103,5 +103,5 @@ class bboxhead(nn.Module):
         x = self.model(x)
         _x = x.view(x.shape[0], self.anchors, 4, x.shape[2], x.shape[3])
         f_x = _x.permute(0, 1, 3, 4, 2).contiguous()
-        x= f_x.reshape((x.shape[0],f_x.shape[1]*f_x.shape[2]*f_x.shape[3],4))
+        x= f_x.view((x.shape[0],-1,4))
         return x
