@@ -39,7 +39,6 @@ class FaceDetectionDataset(torch.utils.data.Dataset):
             else:
                 
                 gt_boxes = []
-            #feature_map_sizes)
             targets = []
             for level, anchors in enumerate(self.all_anchors):
                 level_targets = self.assign_targets(gt_boxes, anchors)
@@ -51,7 +50,6 @@ class FaceDetectionDataset(torch.utils.data.Dataset):
             return self.__getitem__(idx + 1)
     
     def assign_targets(self, gt_boxes, anchors, pos_threshold=0.5, neg_threshold=0.4):
-        """Assign ground truth boxes to anchors"""
         num_anchors = len(anchors)
         
         if len(gt_boxes) == 0:
@@ -62,29 +60,16 @@ class FaceDetectionDataset(torch.utils.data.Dataset):
                 'bbox_weights': torch.zeros(num_anchors).to(device)
             }
         
-        # Compute IoU between all anchors and ground truth boxes
         ious = self.compute_iou(anchors, gt_boxes)  # [num_anchors, num_gt]
-        
-        # Find best matching ground truth for each anchor
         max_iou_per_anchor, max_iou_indices = ious.max(dim=1)
-        
-        # Initialize targets
         cls_targets = torch.zeros(num_anchors, dtype=torch.long).to(device)  # 0: background
         bbox_targets = torch.zeros(num_anchors, 4).to(device)
         bbox_weights = torch.zeros(num_anchors).to(device)
-        
-        # Positive samples (IoU > pos_threshold)
         positive_mask = max_iou_per_anchor > pos_threshold
-        # print(positive_mask)
         cls_targets[positive_mask] = 1  # Face class
         bbox_weights[positive_mask] = 1.0
-        
-        # Negative samples (IoU < neg_threshold)
         negative_mask = max_iou_per_anchor < neg_threshold
         cls_targets[negative_mask] = 0  # Background class
-        
-        
-        # Encode bbox targets for positive samples
         if positive_mask.sum() > 0:
             positive_anchors = anchors[positive_mask]
             assigned_gt = gt_boxes[max_iou_indices[positive_mask]]
@@ -96,7 +81,6 @@ class FaceDetectionDataset(torch.utils.data.Dataset):
         }
     
     def compute_iou(self, anchors, gt_boxes):
-        """Compute IoU between anchors and ground truth boxes"""
         # anchors: [num_anchors, 4] in [x1, y1, w, b] format
         # gt_boxes: [num_gt, 4] in [x1, y1, w, b] format
         
@@ -105,15 +89,12 @@ class FaceDetectionDataset(torch.utils.data.Dataset):
         # print(num_anchors.size)
         # print(num_gt)
         
-        # Expand dimensions for broadcasting
         anchors = anchors.unsqueeze(1).expand(num_anchors, num_gt, 4)
         gt_boxes = gt_boxes.unsqueeze(0).expand(num_anchors, num_gt, 4)
         
-        # Compute union
         anchor_area = anchors[:, :, 2] * anchors[:, :, 3]
         gt_area     = gt_boxes[:, :, 2] * gt_boxes[:, :, 3]
 
-        # Compute intersection
         inter_x1 = torch.max(anchors[:, :, 0], gt_boxes[:, :, 0])   #x1   
         inter_y1 = torch.max(anchors[:, :, 1], gt_boxes[:, :, 1])   #y1
         inter_x2 = torch.min(anchors[:, :, 2]+anchors[:,:,0], gt_boxes[:, :, 2]+gt_boxes[:,:,0])   #x2
@@ -122,13 +103,11 @@ class FaceDetectionDataset(torch.utils.data.Dataset):
         inter_area = torch.clamp(inter_x2 - inter_x1, min=0) * torch.clamp(inter_y2 - inter_y1, min=0)
         union_area  = anchor_area + gt_area - inter_area
 
-        # Compute IoU
         iou = inter_area / torch.clamp(union_area, min=1e-6)
   
         return iou.to(device)
     
     def encode_bbox_targets(self, gt_boxes, anchors):
-        """Encode ground truth boxes relative to anchors"""
         # Convert to center format
         anchor_widths = anchors[:, 2]
         anchor_heights = anchors[:, 3]
@@ -152,7 +131,6 @@ class AnchorGenerator:
     def __init__(self):
         # Define scales and aspect ratios for each FPN level
         self.scales = [128, 64, 32, 16]
-        
         self.aspect_ratios = [0.5, 1.0, 2.0]  # Common face aspect ratios
         self.anchor_scales = [2**0, 2**(1/3), 2**(2/3), 0.5]  # Sub-octave scales
         
@@ -160,7 +138,6 @@ class AnchorGenerator:
         self.strides = [32, 16, 8, 4 ]  # Corresponding to your FPN levels
         
     def generate_anchors(self, feature_map_sizes = [(20,20),(40,40),(80,80),(160,160)]):
-        """Generate anchors for all FPN levels"""
         all_anchors = []
         # feature_map_sizes = [(20,20),(40,40),(80,80),(160,160)] example
         for level, (h, w) in enumerate(feature_map_sizes):
@@ -172,7 +149,6 @@ class AnchorGenerator:
         return all_anchors
     
     def generate_level_anchors(self, h, w, base_size, stride):
-        """Generate anchors for a single FPN level"""
         anchors = []
         
         for i in range(h):
