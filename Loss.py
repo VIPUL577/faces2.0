@@ -43,13 +43,14 @@ class Lossfunction(nn.Module):
             targeta = targets[level]
             if len(targeta["cls_targets"].shape)==2:
                 targeta["cls_targets"] = targeta["cls_targets"].unsqueeze(0)
-            cls_loss += self.classloss(predicta["cls"], targeta["cls_targets"].to(device),targeta["cls_weights"])
+            if targeta['cls_weights'].sum() > 0:
+                cls_loss += self.classloss(predicta["cls"], targeta["cls_targets"].to(device),targeta["cls_weights"].to(device))
             if targeta['bbox_weights'].sum() > 0:
                 bbox_loss += self.reg_loss(predicta["bbox"],targeta["bbox_targets"].to(device),targeta['bbox_weights'].to(device))
                 # k+=targeta['bbox_weights'].sum()
             # print(f"k:{k}")
         # print((bbox_loss/cls_loss)*1.0)
         # print(f'''box loss:{bbox_loss}\ncls loss:{cls_loss}''')
-        return cls_loss + (self.lambd*bbox_loss)
+        return bbox_loss + (self.lambd*cls_loss)
             
             
