@@ -52,7 +52,7 @@ class FPNetwork(nn.Module):
         
         for i in range (len(self.keys)-1,-1,-1):
             feature = self.features[self.keys[i]]
-            if i == len(self.keys)-1:
+            if i == len(self.keys)-1: #last layer
                 # print(self.keys[i].replace('.','_'))
                 self.output[self.keys[i]] = self.final_conv[self.keys[i].replace('.','_')](self.convs[self.keys[i].replace('.','_')](feature))
                 continue

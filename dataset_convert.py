@@ -49,33 +49,39 @@ class FaceDetectionDataset(torch.utils.data.Dataset):
             print(f"Batch no. {idx}: {e}")
             return self.__getitem__(idx + 1)
     
-    def assign_targets(self, gt_boxes, anchors, pos_threshold=0.5, neg_threshold=0.4):
+    def assign_targets(self, gt_boxes, anchors, pos_threshold=0.5, neg_threshold=0.3):
         num_anchors = len(anchors)
         
         if len(gt_boxes) == 0:
             # No faces in image
             return {
                 'cls_targets': torch.zeros((num_anchors,1), dtype=torch.long).to(device),
+                'cls_weights': torch.zeros(num_anchors).to(device),
                 'bbox_targets': torch.zeros(num_anchors, 4).to(device),
                 'bbox_weights': torch.zeros(num_anchors).to(device)
             }
         
         ious = self.compute_iou(anchors, gt_boxes)  # [num_anchors, num_gt]
         max_iou_per_anchor, max_iou_indices = ious.max(dim=1)
-        cls_targets = torch.zeros(num_anchors, dtype=torch.long).to(device)  # 0: background
+        cls_targets = torch.zeros(num_anchors, dtype=torch.long).to(device)
+        cls_weights = torch.zeros(num_anchors).to(device)
         bbox_targets = torch.zeros(num_anchors, 4).to(device)
         bbox_weights = torch.zeros(num_anchors).to(device)
         positive_mask = max_iou_per_anchor > pos_threshold
         cls_targets[positive_mask] = 1  # Face class
         bbox_weights[positive_mask] = 1.0
+        cls_weights[positive_mask] = 1.0
+        
         negative_mask = max_iou_per_anchor < neg_threshold
-        cls_targets[negative_mask] = 0  # Background class
+        cls_targets[negative_mask] = 0
+        cls_weights[negative_mask] = 0.0
         if positive_mask.sum() > 0:
             positive_anchors = anchors[positive_mask]
             assigned_gt = gt_boxes[max_iou_indices[positive_mask]]
             bbox_targets[positive_mask] = self.encode_bbox_targets(assigned_gt, positive_anchors)
         return {
             'cls_targets': cls_targets.reshape((cls_targets.shape[0],1)),
+            'cls_weights': cls_weights,
             'bbox_targets': bbox_targets,
             'bbox_weights': bbox_weights
         }

@@ -14,16 +14,17 @@ class Lossfunction(nn.Module):
         self.BCEloss = nn.BCEWithLogitsLoss(reduction='none').to(device)
         self.sigmoid = nn.Sigmoid().to(device)
 
-    def classloss(self, p, cls_targets):
+    def classloss(self, p, cls_targets, weights):
         # p = p.clamp(min=1e-8, max = 1-(1e-8))
         pa = self.sigmoid(p)
         alpha = (self.alpha* cls_targets) + ((1-self.alpha)*(1- cls_targets))
         pt = ((1-pa) * (1-cls_targets)) + (pa * cls_targets)
     
         p = self.BCEloss(p,cls_targets.to(torch.float))
-        
-        loss = alpha*((1-pt)**self.gamma)*p
+        # print(f"ff{p.shape}")
+        loss = (alpha*((1-pt)**self.gamma)*p)*weights.unsqueeze(-1)
         pos = (cls_targets.sum()).clamp(1.0)
+        # print(loss.shape)
         # print(f"cls--raw:{(pos_loss+neg_loss).sum()}\n p:{pos}")
         return loss.sum()/pos
     
@@ -42,7 +43,7 @@ class Lossfunction(nn.Module):
             targeta = targets[level]
             if len(targeta["cls_targets"].shape)==2:
                 targeta["cls_targets"] = targeta["cls_targets"].unsqueeze(0)
-            cls_loss += self.classloss(predicta["cls"], targeta["cls_targets"].to(device))
+            cls_loss += self.classloss(predicta["cls"], targeta["cls_targets"].to(device),targeta["cls_weights"])
             if targeta['bbox_weights'].sum() > 0:
                 bbox_loss += self.reg_loss(predicta["bbox"],targeta["bbox_targets"].to(device),targeta['bbox_weights'].to(device))
                 # k+=targeta['bbox_weights'].sum()
