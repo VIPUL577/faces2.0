@@ -74,7 +74,7 @@ class FaceDetectionDataset(torch.utils.data.Dataset):
         
         negative_mask = max_iou_per_anchor < neg_threshold
         cls_targets[negative_mask] = 0
-        cls_weights[negative_mask] = 0.0
+        cls_weights[negative_mask] = 1.0
         if positive_mask.sum() > 0:
             positive_anchors = anchors[positive_mask]
             assigned_gt = gt_boxes[max_iou_indices[positive_mask]]
