@@ -1,10 +1,26 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from mobilenetv2 import ConvBN
+import torch.nn.init as init
 
 # device = torch.device("mps")
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+class ConvBN(nn.Module):
+    def __init__(self,in_channels,out_channels, kernel_size, stride, bais=True,padding=0,pi = 0.5,activation = True):
+        super().__init__()
+        layer = []
+        layer.append(nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, bias=bais,stride=stride,padding=padding))
+        layer.append(nn.BatchNorm2d(num_features=out_channels))
+        if activation:
+            layer.append(nn.ReLU(inplace=True))
+        init.xavier_uniform_(layer[0].weight) 
+        pi= torch.tensor(pi)
+        #default case when pi = 0.5, bias is initialized to zero
+        init.constant_(layer[0].bias, -torch.log((1-pi)/pi))
+        self.model = nn.Sequential(*layer)#.to(device)
+    def forward(self,x):
+        return self.model(x)
 
 class Features(nn.Module):
     def __init__(self, model, layers:list):
@@ -68,14 +84,23 @@ class classificationhead(nn.Module):
         self.channels = channels
         self.anchors = num_anchors
         self.num_of_classes = num_of_classes
-        # self.sigmoid = nn.Sigmoid().to(device)
+        
+        self.final_conv = nn.Conv2d(in_channels= self.channels, out_channels= self.anchors*self.num_of_classes, kernel_size= 3,stride=1,padding=1)
+            # nn.BatchNorm2d(self.anchors*self.num_of_classes),
+        
+        init.xavier_uniform_(self.final_conv.weight) 
+        pi = 0.1
+        pi= torch.tensor(pi)
+        
+        init.constant_(self.final_conv.bias, -torch.log((1-pi)/pi))
 
         self.model = nn.Sequential(
             ConvBN(in_channels=channels,out_channels=channels, kernel_size= 3,stride=1,padding=1).to(device),
             ConvBN(in_channels=channels,out_channels=channels, kernel_size= 3,stride=1,padding=1).to(device),
             ConvBN(in_channels=channels,out_channels=channels, kernel_size= 3,stride=1,padding=1).to(device),
             ConvBN(in_channels=channels,out_channels=channels, kernel_size= 3,stride=1,padding=1).to(device),
-            ConvBN(in_channels= self.channels, out_channels= self.anchors*self.num_of_classes, kernel_size= 3,stride=1,padding=1,pi=0.01,activation=False)
+            self.final_conv
+            # ConvBN(in_channels= self.channels, out_channels= self.anchors*self.num_of_classes, kernel_size= 3,stride=1,padding=1,pi=0.01,activation=False)
         ).to(device)
         
     def forward(self,x):
