@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from mobilenetv2 import MobileNetv2
+from garbage.mobilenetv2 import MobileNetv2
 from FPN import Features, FPNetwork , classificationhead , bboxhead
 
 # device = torch.device("mps")
